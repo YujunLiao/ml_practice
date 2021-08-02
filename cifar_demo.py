@@ -7,7 +7,8 @@ from torch.utils.data import DataLoader, Dataset
 from torch import nn
 from torch.nn import Module
 from collections import OrderedDict
-
+# from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 # from torch.utils.data.Dataset
 
 cifar10_trainset = datasets.CIFAR10(root='./data', train=True, download=True, transform=None)
@@ -74,13 +75,17 @@ class Model(Module):
 
 # alex_model = Model(alexnet, 10)
 model = Model(alexnet, 10)
-optim = torch.optim.SGD(model.parameters(), lr=0.0005, momentum=0.9)
+# optim = torch.optim.SGD(model.parameters(), lr=0.0005, momentum=0.9)
+optim = torch.optim.SGD(model.parameters(), lr=0.0003, momentum=0.9)
+# optim = torch.optim.SGD(model.parameters(), lr=0.0002, momentum=0.9)
 step_lr = torch.optim.lr_scheduler.StepLR(optim, step_size=30, gamma=0.1)
 
 device = torch.device('cuda:0')
+writer = SummaryWriter(log_dir = 'logs')
 
 pre_loss = -1
-for epoch in range(100):
+step = 0
+for epoch in range(1):
     for i, (img, label) in enumerate(cifar10_train_DL):
         img, label, model = img.to(device), label.to(device), model.to(device)
         model.train()
@@ -97,9 +102,11 @@ for epoch in range(100):
         #             p['lr'] *= 0.5
         #             # print(p['lr'])
         # pre_loss = loss.item()
-
+        writer.add_scalar('loss', loss.item(), global_step=step)
+        step += 1
         print(f"epoch:{epoch} iter:{i} lr:{list(optim.param_groups)[0]['lr']} loss:{loss.item()}")
     step_lr.step()
+
 
 
 
