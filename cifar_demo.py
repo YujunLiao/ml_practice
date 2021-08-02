@@ -65,7 +65,8 @@ cifar10_test_DL = DataLoader(
  )
 
 resnet_18 = torchvision.models.resnet18(pretrained=True)
-alexnet = torchvision.models.alexnet(pretrained=False)
+alexnet = torchvision.models.alexnet(pretrained=True)
+# alexnet = torchvision.models.alexnet(pretrained=False)
 
 class Model(Module):
     def __init__(self, model, out_num):
@@ -93,9 +94,8 @@ class Model(Module):
 
 # alex_model = Model(alexnet, 10)
 model = Model(alexnet, 10)
-optim = torch.optim.SGD(model.parameters(), lr=0.0005, momentum=0.9)
-# optim = torch.optim.SGD(model.parameters(), lr=0.0003, momentum=0.9)
-# optim = torch.optim.SGD(model.parameters(), lr=0.0002, momentum=0.9)
+optim = torch.optim.SGD(model.parameters(), lr=5e-5, momentum=0.9)
+# optim = torch.optim.SGD(model.parameters(), lr=3e-3, momentum=0.9)
 step_lr = torch.optim.lr_scheduler.StepLR(optim, step_size=30, gamma=0.1)
 
 device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
@@ -105,10 +105,10 @@ writer = SummaryWriter(log_dir = 'logs')
 pre_loss = -1
 step = 0
 factor_n = 10
-for epoch in range(1):
+for epoch in range(3):
+    model.train()
     for i, (img, label) in enumerate(cifar10_train_DL):
         img, label, model = img.to(device), label.to(device), model.to(device)
-        model.train()
         optim.zero_grad()
 
         logit = model(img)
@@ -125,25 +125,26 @@ for epoch in range(1):
         writer.add_scalar('loss', round(loss.item(), factor_n), global_step=step)
         step += 1
         print(f"epoch:{epoch} iter:{i} lr:{list(optim.param_groups)[0]['lr']} loss:{round(loss.item(), factor_n)}")
-        step_lr.step()
-        if i == 100:
-            break
 
-model.eval()
-loss = 0
-n = 0
-acc = 0
-with torch.no_grad():
-    for i, (img, label) in enumerate(cifar10_test_DL):
-        img, label, model = img.to(device), label.to(device), model.to(device)
-        logit = model(img)
-        pre = torch.argmax(logit, dim=1)
-        acc += sum(pre==label)
-        loss += nn.CrossEntropyLoss()(logit, label)
-        n += 1
-        if n == 100:
-            break
-print(f"test loss:{round(loss.item()/n, factor_n)} acc:{acc/n}")
+        # if i == 300:
+        #     break
+    step_lr.step()
+
+    model.eval()
+    loss = 0
+    n = 0
+    acc = 0
+    with torch.no_grad():
+        for i, (img, label) in enumerate(cifar10_test_DL):
+            img, label, model = img.to(device), label.to(device), model.to(device)
+            logit = model(img)
+            pre = torch.argmax(logit, dim=1)
+            acc += sum(pre==label)
+            loss += nn.CrossEntropyLoss()(logit, label)
+            n += 1
+            if n == 100:
+                break
+    print(f"test loss:{round(loss.item()/n, factor_n)} acc:{acc/n}")
 
 
 
