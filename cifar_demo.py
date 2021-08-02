@@ -14,7 +14,7 @@ from torch.utils.tensorboard import SummaryWriter
 # from torch.utils.data.Dataset
 import random
 import numpy as np
-
+import time
 reproduce = True
 if reproduce:
     print("deterministic")
@@ -76,6 +76,10 @@ class Model(Module):
             ('fc1', nn.Linear(1000, 100, True)),
             ('r1', nn.ReLU()),
             ('fc2', nn.Linear(100, out_num, True)),
+
+            # ('fc2', nn.Linear(100, 100, True)),
+            # ('r2', nn.ReLU()),
+            # ('fc3', nn.Linear(100, out_num, True)),
         ]))
         self.init()
 
@@ -86,16 +90,31 @@ class Model(Module):
             nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
             nn.init.constant_(m.bias, 0.)
 
+        # for m in dict(self.named_children())['model'].children():
+        #     if not isinstance(m, nn.Sequential): continue
+        #     for mm in m:
+        #         if isinstance(mm, nn.Linear):
+        #             nn.init.kaiming_normal_(mm.weight, mode='fan_out', nonlinearity='relu')
+        #             nn.init.constant_(mm.bias, 0.)
+        #         if isinstance(mm, nn.Conv2d):
+        #             nn.reset_parameters()
+
+
+
+
+
 
 
     def forward(self, x):
         x = self.model(x)
         return self.fc(x)
 
-# alex_model = Model(alexnet, 10)
+# model = Model(resnet_18, 10)
 model = Model(alexnet, 10)
+# optim = torch.optim.SGD(model.parameters(), lr=5e-6, momentum=0.9)
 optim = torch.optim.SGD(model.parameters(), lr=5e-5, momentum=0.9)
-# optim = torch.optim.SGD(model.parameters(), lr=3e-3, momentum=0.9)
+# optim = torch.optim.SGD(model.parameters(), lr=5e-4, momentum=0.9)
+# optim = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.9)
 step_lr = torch.optim.lr_scheduler.StepLR(optim, step_size=30, gamma=0.1)
 
 device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
@@ -105,6 +124,7 @@ writer = SummaryWriter(log_dir = 'logs')
 pre_loss = -1
 step = 0
 factor_n = 10
+begin_time = time.time()
 for epoch in range(3):
     model.train()
     for i, (img, label) in enumerate(cifar10_train_DL):
@@ -125,8 +145,8 @@ for epoch in range(3):
         writer.add_scalar('loss', round(loss.item(), factor_n), global_step=step)
         step += 1
         print(f"epoch:{epoch} iter:{i} lr:{list(optim.param_groups)[0]['lr']} loss:{round(loss.item(), factor_n)}")
-
-        # if i == 300:
+        #
+        # if i == 10:
         #     break
     step_lr.step()
 
@@ -145,7 +165,8 @@ for epoch in range(3):
             if n == 100:
                 break
     print(f"test loss:{round(loss.item()/n, factor_n)} acc:{acc/n}")
-
+end_time = time.time()
+print(f'{end_time-begin_time} s')
 
 
 
