@@ -15,6 +15,8 @@ from torch.utils.tensorboard import SummaryWriter
 import random
 import numpy as np
 import time
+from models.alexnet import alexnet as get_alexnet
+
 reproduce = True
 if reproduce:
     print("deterministic")
@@ -66,7 +68,10 @@ cifar10_test_DL = DataLoader(
 
 # resnet_18 = torchvision.models.resnet18(pretrained=True)
 # resnet_50 = torchvision.models.resnet50(pretrained=True)
-alexnet = torchvision.models.alexnet(pretrained=True)
+# alexnet = torchvision.models.alexnet(pretrained=True)
+
+alexnet = get_alexnet(pretrained=True)
+
 # alexnet = torchvision.models.alexnet(pretrained=False)
 
 class Model(Module):
