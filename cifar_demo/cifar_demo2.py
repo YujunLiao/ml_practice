@@ -15,7 +15,8 @@ from torch.utils.tensorboard import SummaryWriter
 import random
 import numpy as np
 import time
-from models.alexnet import alexnet as get_alexnet
+from models.alexnet2 import alexnet as get_alexnet
+from pdb import set_trace as b
 
 reproduce = False
 if reproduce:
@@ -40,7 +41,7 @@ class TensorDataset(Dataset):
 
     def __getitem__(self, item):
         img, label = self.data[item]
-        img = img.resize((64, 64), PIL.Image.BILINEAR)
+        # img = img.resize((64, 64), PIL.Image.BILINEAR)
         return transforms.ToTensor()(img), label
 
     def __len__(self):
@@ -52,84 +53,36 @@ cifar10_train_DL = DataLoader(
     TensorDataset(cifar10_trainset),
     batch_size=64,
     shuffle=False,
-    num_workers=1,
+    num_workers=10,
     collate_fn=None,
     pin_memory=False,
  )
 
 cifar10_test_DL = DataLoader(
     TensorDataset(cifar10_testset),
-    batch_size=1,
+    batch_size=20,
     shuffle=False,
     num_workers=1,
     collate_fn=None,
     pin_memory=False,
  )
 
-# resnet_18 = torchvision.models.resnet18(pretrained=True)
-# resnet_50 = torchvision.models.resnet50(pretrained=True)
-# alexnet = torchvision.models.alexnet(pretrained=True)
-
 alexnet = get_alexnet(pretrained=False)
-
-# alexnet = torchvision.models.alexnet(pretrained=False)
 
 class Model(Module):
     def __init__(self, model, out_num):
         super(Model, self).__init__()
         self.model = model
-        self.model.classifier[-1] = nn.Linear(4096, out_num, True)
-
-        # self.fc = nn.Sequential(OrderedDict([
-        #     ('fc1', nn.Linear(1000, 100, True)),
-        #     ('r1', nn.ReLU()),
-        #     ('fc2', nn.Linear(100, out_num, True)),
-        # ]))
-        self.init()
-
-
-    def init(self):
-        nn.init.kaiming_normal_(self.model.classifier[-1].weight, mode='fan_out', nonlinearity='relu')
-        nn.init.constant_(self.model.classifier[-1].bias, 0.)
-
-        # for m in dict(self.named_children())['fc']:
-        #     if not isinstance(m, nn.Linear): continue
-        #     nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-        #     nn.init.constant_(m.bias, 0.)
-
-        # for m in dict(self.named_children())['model'].children():
-        #     if not isinstance(m, nn.Sequential): continue
-        #     for mm in m:
-        #         if isinstance(mm, nn.Linear):
-        #             nn.init.kaiming_normal_(mm.weight, mode='fan_out', nonlinearity='relu')
-        #             nn.init.constant_(mm.bias, 0.)
-        #         if isinstance(mm, nn.Conv2d):
-        #             nn.reset_parameters()
-
-
-
-
-
-
 
     def forward(self, x):
         x = self.model(x)
         return x
-        # return self.fc(x)
 
-# model = Model(resnet_18, 10)
-# model = Model(resnet_50, 10)
 model = Model(alexnet, 10)
-# optim = torch.optim.SGD(model.parameters(), lr=5e-6, momentum=0.9)
-# optim = torch.optim.SGD(model.parameters(), lr=5e-5, momentum=0.9)
-optim = torch.optim.SGD(model.parameters(), lr=5e-4, momentum=0.9)
-# optim = torch.optim.SGD(model.parameters(), lr=5e-3, momentum=0.9)
-# optim = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.9)
-step_lr = torch.optim.lr_scheduler.StepLR(optim, step_size=3, gamma=0.1)
-
+optim = torch.optim.Adam(model.parameters(), lr=0.001)
+step_lr = torch.optim.lr_scheduler.MultiStepLR(optim, milestones=[75, 150], gamma=0.5)
 device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
 writer = SummaryWriter(log_dir = 'logs')
-
 
 pre_loss = -1
 step = 0
@@ -164,6 +117,7 @@ for epoch in range(2):
     loss = 0
     n = 0
     acc = 0
+
     with torch.no_grad():
         for i, (img, label) in enumerate(cifar10_test_DL):
             img, label, model = img.to(device), label.to(device), model.to(device)
@@ -174,7 +128,7 @@ for epoch in range(2):
             n += len(label)
             if n == 1000:
                 break
-    print(f"test loss:{round(loss.item()/n, factor_n)} acc:{acc/n}")
+    print(f"test loss:{round(loss.item()/n, factor_n)} acc:{acc.item()/n}")
 end_time = time.time()
 print(f'{end_time-begin_time} s')
 
