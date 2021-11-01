@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 from torchvision.models.utils import load_state_dict_from_url
 
-
 __all__ = ['AlexNet', 'alexnet']
 
 
@@ -34,6 +33,7 @@ class AlexNet(nn.Module):
         self.classifier = nn.Sequential(
             nn.Dropout(),
             nn.Linear(256 * 6 * 6, 4096),
+            # nn.Linear(256 * 1 * 1, 4096),
             nn.ReLU(inplace=True),
             nn.Dropout(),
             nn.Linear(4096, 4096),

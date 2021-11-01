@@ -15,7 +15,9 @@ from torch.utils.tensorboard import SummaryWriter
 import random
 import numpy as np
 import time
-from models.alexnet import alexnet as get_alexnet
+# from models.alexnet import alexnet as get_alexnet
+# from models.alexnet2 import alexnet as get_alexnet
+from models.alexnet3 import alexnet as get_alexnet
 
 reproduce = True
 if reproduce:
@@ -70,7 +72,7 @@ cifar10_test_DL = DataLoader(
 # resnet_50 = torchvision.models.resnet50(pretrained=True)
 # alexnet = torchvision.models.alexnet(pretrained=True)
 
-alexnet = get_alexnet(pretrained=True)
+alexnet = get_alexnet(pretrained=False)
 
 # alexnet = torchvision.models.alexnet(pretrained=False)
 
@@ -121,8 +123,9 @@ class Model(Module):
 # model = Model(resnet_50, 10)
 model = Model(alexnet, 10)
 # optim = torch.optim.SGD(model.parameters(), lr=5e-6, momentum=0.9)
-optim = torch.optim.SGD(model.parameters(), lr=5e-5, momentum=0.9)
-# optim = torch.optim.SGD(model.parameters(), lr=5e-4, momentum=0.9)
+# optim = torch.optim.SGD(model.parameters(), lr=5e-5, momentum=0.9)
+optim = torch.optim.SGD(model.parameters(), lr=5e-4, momentum=0.9)
+# optim = torch.optim.SGD(model.parameters(), lr=5e-3, momentum=0.9)
 # optim = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.9)
 step_lr = torch.optim.lr_scheduler.StepLR(optim, step_size=3, gamma=0.1)
 
@@ -134,7 +137,7 @@ pre_loss = -1
 step = 0
 factor_n = 10
 begin_time = time.time()
-for epoch in range(20):
+for epoch in range(2):
     model.train()
     for i, (img, label) in enumerate(cifar10_train_DL):
         img, label, model = img.to(device), label.to(device), model.to(device)
