@@ -1,5 +1,5 @@
-data
-logs
+cifar_demo/data
+cifar_demo/logs
 .idea
 __pycache__
 *.zip

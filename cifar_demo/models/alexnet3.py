@@ -1,4 +1,5 @@
-
+# 直接把可运行的modified alexnet拿过来的，但是仍然不收敛
+# https://github.com/icpm/pytorch-cifar10
 
 import torch
 import torch.nn as nn

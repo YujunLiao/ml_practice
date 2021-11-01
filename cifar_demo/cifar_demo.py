@@ -15,9 +15,7 @@ from torch.utils.tensorboard import SummaryWriter
 import random
 import numpy as np
 import time
-# from models.alexnet import alexnet as get_alexnet
-# from models.alexnet2 import alexnet as get_alexnet
-from models.alexnet3 import alexnet as get_alexnet
+from models.alexnet import alexnet as get_alexnet
 
 reproduce = True
 if reproduce:
