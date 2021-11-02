@@ -39,11 +39,22 @@ class TensorDataset(Dataset):
         super(TensorDataset, self).__init__()
         self.data = data
         self.max_data_size = max_data_size
+        # self.random_label = np.random.randint(0, 10, size=[max_data_size])
+        self.random_label = np.random.randint(0, 2, size=[max_data_size])
+
+
+        # label = [self.data[i][1] for i in range(max_data_size)]
+        # # map_list = [0, 0, 2, 2, 4, 4, 6, 6, 8, 8]
+        # # map_list = [0, 0, 0, 2, 4, 4, 4, 4, 8, 8]
+        # map_list = [0, 0, 0, 0, 4, 4, 4, 4, 4, 4]
+        # self.random_label = [map_list[l] for l in label]
 
     def __getitem__(self, item):
         img, label = self.data[item]
         # img = img.resize((64, 64), PIL.Image.BILINEAR)
-        return transforms.ToTensor()(img), label
+
+        # return transforms.ToTensor()(img), label
+        return transforms.ToTensor()(img), self.random_label[item]
 
     def __len__(self):
         # return len(self.data)
@@ -67,8 +78,8 @@ cifar10_test_DL = DataLoader(
     pin_memory=False,
  )
 
-alexnet = get_alexnet(pretrained=False)
-# alexnet = get_alexnet(pretrained=True)
+# alexnet = get_alexnet(pretrained=False)
+alexnet = get_alexnet(pretrained=True)
 
 class Model(Module):
     def __init__(self, model, out_num):
