@@ -32,22 +32,26 @@ if reproduce:
 cifar10_trainset = datasets.CIFAR10(root='./data', train=True, download=True, transform=None)
 cifar10_testset = datasets.CIFAR10(root='./data', train=False, download=True, transform=None)
 
+
+
 class TensorDataset(Dataset):
-    def __init__(self, data):
+    def __init__(self, data, max_data_size = 2000):
         super(TensorDataset, self).__init__()
         self.data = data
+        self.max_data_size = max_data_size
 
     def __getitem__(self, item):
         img, label = self.data[item]
-        # img = img.resize((64, 64), PIL.Image.BILINEAR)
+        img = img.resize((64, 64), PIL.Image.BILINEAR)
         return transforms.ToTensor()(img), label
 
     def __len__(self):
-        return len(self.data)
+        # return len(self.data)
+        return self.max_data_size
 
 cifar10_train_DL = DataLoader(
-    TensorDataset(cifar10_trainset),
-    batch_size=64,
+    TensorDataset(cifar10_trainset, max_data_size = 2000),
+    batch_size=100,
     shuffle=False,
     num_workers=10,
     collate_fn=None,
@@ -55,8 +59,8 @@ cifar10_train_DL = DataLoader(
  )
 
 cifar10_test_DL = DataLoader(
-    TensorDataset(cifar10_testset),
-    batch_size=20,
+    TensorDataset(cifar10_testset, max_data_size = 400),
+    batch_size=100,
     shuffle=False,
     num_workers=1,
     collate_fn=None,
@@ -84,7 +88,7 @@ pre_loss = -1
 step = 0
 factor_n = 10
 begin_time = time.time()
-for epoch in range(2):
+for epoch in range(100):
     model.train()
     for i, (img, label) in enumerate(cifar10_train_DL):
         img, label, model = img.to(device), label.to(device), model.to(device)
@@ -101,9 +105,12 @@ for epoch in range(2):
         #             p['lr'] *= 0.5
         #             # print(p['lr'])
         # pre_loss = loss.item()
+        n = torch.sum(torch.argmax(logit, 1)==label)
+        train_acc = n.item()/len(label)
         writer.add_scalar('loss', round(loss.item(), factor_n), global_step=step)
+        writer.add_scalar('train_acc', round(train_acc, factor_n), global_step=step)
         step += 1
-        print(f"epoch:{epoch} iter:{i} lr:{list(optim.param_groups)[0]['lr']} loss:{round(loss.item(), factor_n)}")
+        print(f"epoch:{epoch} iter:{i} step:{step} lr:{list(optim.param_groups)[0]['lr']} loss:{round(loss.item(), factor_n)} train_acc:{round(train_acc, factor_n)}")
     step_lr.step()
 
     model.eval()
