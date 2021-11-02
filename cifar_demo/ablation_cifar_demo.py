@@ -1,5 +1,4 @@
 import os
-
 import PIL
 import torch
 import torchvision
@@ -15,7 +14,7 @@ from torch.utils.tensorboard import SummaryWriter
 import random
 import numpy as np
 import time
-from models.alexnet2 import alexnet as get_alexnet
+from models.ablation_alexnet import alexnet as get_alexnet
 from pdb import set_trace as b
 
 reproduce = False
@@ -38,7 +37,6 @@ class TensorDataset(Dataset):
         super(TensorDataset, self).__init__()
         self.data = data
 
-
     def __getitem__(self, item):
         img, label = self.data[item]
         # img = img.resize((64, 64), PIL.Image.BILINEAR)
@@ -46,8 +44,6 @@ class TensorDataset(Dataset):
 
     def __len__(self):
         return len(self.data)
-
-
 
 cifar10_train_DL = DataLoader(
     TensorDataset(cifar10_trainset),
@@ -81,7 +77,7 @@ class Model(Module):
 model = Model(alexnet, 10)
 optim = torch.optim.Adam(model.parameters(), lr=0.001)
 step_lr = torch.optim.lr_scheduler.MultiStepLR(optim, milestones=[75, 150], gamma=0.5)
-device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 writer = SummaryWriter(log_dir = 'logs')
 
 pre_loss = -1
@@ -108,9 +104,6 @@ for epoch in range(2):
         writer.add_scalar('loss', round(loss.item(), factor_n), global_step=step)
         step += 1
         print(f"epoch:{epoch} iter:{i} lr:{list(optim.param_groups)[0]['lr']} loss:{round(loss.item(), factor_n)}")
-        #
-        # if i == 10:
-        #     break
     step_lr.step()
 
     model.eval()
