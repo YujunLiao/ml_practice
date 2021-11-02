@@ -42,7 +42,7 @@ class TensorDataset(Dataset):
 
     def __getitem__(self, item):
         img, label = self.data[item]
-        img = img.resize((64, 64), PIL.Image.BILINEAR)
+        # img = img.resize((64, 64), PIL.Image.BILINEAR)
         return transforms.ToTensor()(img), label
 
     def __len__(self):
@@ -68,6 +68,7 @@ cifar10_test_DL = DataLoader(
  )
 
 alexnet = get_alexnet(pretrained=False)
+# alexnet = get_alexnet(pretrained=True)
 
 class Model(Module):
     def __init__(self, model, out_num):
@@ -81,6 +82,8 @@ class Model(Module):
 model = Model(alexnet, 10)
 optim = torch.optim.Adam(model.parameters(), lr=0.001)
 step_lr = torch.optim.lr_scheduler.MultiStepLR(optim, milestones=[75, 150], gamma=0.5)
+# optim = torch.optim.SGD(model.parameters(), lr=1e-2, momentum=0.9)
+# step_lr = torch.optim.lr_scheduler.StepLR(optim, step_size=100, gamma=0.1)
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 writer = SummaryWriter(log_dir = 'logs')
 
@@ -96,6 +99,18 @@ for epoch in range(100):
 
         logit = model(img)
         loss = nn.CrossEntropyLoss()(logit, label)
+        # loss = nn.L1Loss()(logit, label)
+        # loss = nn.NLLLoss()(logit, label)
+        # loss = nn.KLDivLoss()(logit, label)
+        # loss = nn.MSELoss()(logit, label)
+        # loss = nn.BCELoss()(logit, label)
+        # loss = nn.HingeEmbeddingLoss()(logit, label)
+        # loss = nn.CosineEmbeddingLoss()(logit, label)
+        # loss = nn.SoftMarginLoss()(logit, label)
+        # loss = nn.MultiMarginLoss()(logit, label)
+        # loss = nn.MultiLabelMarginLoss()(logit, label)
+        # loss = nn.MultiLabelSoftMarginLoss()(logit, label)
+        # loss = nn.SoftMarginLoss()(logit, label)
         loss.backward()
         optim.step()
 

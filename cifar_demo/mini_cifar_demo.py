@@ -42,7 +42,7 @@ class TensorDataset(Dataset):
 
     def __getitem__(self, item):
         img, label = self.data[item]
-        # img = img.resize((64, 64), PIL.Image.BILINEAR)
+        img = img.resize((64, 64), PIL.Image.BILINEAR)
         return transforms.ToTensor()(img), label
 
     def __len__(self):

@@ -1,5 +1,4 @@
 import os
-
 import PIL
 import torch
 import torchvision
@@ -15,11 +14,10 @@ from torch.utils.tensorboard import SummaryWriter
 import random
 import numpy as np
 import time
-# from models.alexnet import alexnet as get_alexnet
-# from models.alexnet2 import alexnet as get_alexnet
-from models.alexnet3 import alexnet as get_alexnet
+from models.rotation_alexnet import alexnet as get_alexnet
+from pdb import set_trace as b
 
-reproduce = True
+reproduce = False
 if reproduce:
     print("deterministic")
     torch.manual_seed(0)
@@ -34,114 +32,67 @@ if reproduce:
 cifar10_trainset = datasets.CIFAR10(root='./data', train=True, download=True, transform=None)
 cifar10_testset = datasets.CIFAR10(root='./data', train=False, download=True, transform=None)
 
+
+
 class TensorDataset(Dataset):
-    def __init__(self, data):
+    def __init__(self, data, max_data_size = 2000):
         super(TensorDataset, self).__init__()
         self.data = data
-
+        self.max_data_size = max_data_size
 
     def __getitem__(self, item):
         img, label = self.data[item]
         # img = img.resize((64, 64), PIL.Image.BILINEAR)
-        return transforms.ToTensor()(img), label
+        angle = random.randint(0, 3)
+        img_r = PIL.Image.Image.rotate(img, 90*angle)
+        return transforms.ToTensor()(img_r), angle
 
     def __len__(self):
-        return len(self.data)
-
-
+        # return len(self.data)
+        return self.max_data_size
 
 cifar10_train_DL = DataLoader(
-    TensorDataset(cifar10_trainset),
-    batch_size=64,
+    TensorDataset(cifar10_trainset, max_data_size = 2000),
+    batch_size=100,
     shuffle=False,
-    num_workers=1,
+    num_workers=10,
     collate_fn=None,
     pin_memory=False,
  )
 
 cifar10_test_DL = DataLoader(
-    TensorDataset(cifar10_testset),
-    batch_size=1,
+    TensorDataset(cifar10_testset, max_data_size = 400),
+    batch_size=100,
     shuffle=False,
     num_workers=1,
     collate_fn=None,
     pin_memory=False,
  )
 
-# resnet_18 = torchvision.models.resnet18(pretrained=True)
-# resnet_50 = torchvision.models.resnet50(pretrained=True)
-# alexnet = torchvision.models.alexnet(pretrained=True)
-
 alexnet = get_alexnet(pretrained=False)
 
-# alexnet = torchvision.models.alexnet(pretrained=False)
-
 class Model(Module):
-    def __init__(self, model):
+    def __init__(self, model, out_num):
         super(Model, self).__init__()
         self.model = model
-        # self.model.classifier[-1] = nn.Linear(4096, out_num, True)
-
-        # self.fc = nn.Sequential(OrderedDict([
-        #     ('fc1', nn.Linear(1000, 100, True)),
-        #     ('r1', nn.ReLU()),
-        #     ('fc2', nn.Linear(100, out_num, True)),
-        # ]))
-        # self.init()
-
-
-    def init(self):
-        nn.init.kaiming_normal_(self.model.classifier[-1].weight, mode='fan_out', nonlinearity='relu')
-        nn.init.constant_(self.model.classifier[-1].bias, 0.)
-
-        # for m in dict(self.named_children())['fc']:
-        #     if not isinstance(m, nn.Linear): continue
-        #     nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-        #     nn.init.constant_(m.bias, 0.)
-
-        # for m in dict(self.named_children())['model'].children():
-        #     if not isinstance(m, nn.Sequential): continue
-        #     for mm in m:
-        #         if isinstance(mm, nn.Linear):
-        #             nn.init.kaiming_normal_(mm.weight, mode='fan_out', nonlinearity='relu')
-        #             nn.init.constant_(mm.bias, 0.)
-        #         if isinstance(mm, nn.Conv2d):
-        #             nn.reset_parameters()
-
-
-
-
-
-
 
     def forward(self, x):
         x = self.model(x)
         return x
-        # return self.fc(x)
 
-# model = Model(resnet_18, 10)
-# model = Model(resnet_50, 10)
-model = Model(alexnet)
-# # optim = torch.optim.SGD(model.parameters(), lr=5e-6, momentum=0.9)
-# # optim = torch.optim.SGD(model.parameters(), lr=5e-5, momentum=0.9)
-# optim = torch.optim.SGD(model.parameters(), lr=5e-4, momentum=0.9)
-# # optim = torch.optim.SGD(model.parameters(), lr=5e-3, momentum=0.9)
-# # optim = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.9)
-# step_lr = torch.optim.lr_scheduler.StepLR(optim, step_size=3, gamma=0.1)
-
-
+model = Model(alexnet, 10)
 optim = torch.optim.Adam(model.parameters(), lr=0.001)
 step_lr = torch.optim.lr_scheduler.MultiStepLR(optim, milestones=[75, 150], gamma=0.5)
-
-device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+# optim = torch.optim.SGD(model.parameters(), lr=1e-2, momentum=0.9)
+# step_lr = torch.optim.lr_scheduler.StepLR(optim, step_size=100, gamma=0.1)
+device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 writer = SummaryWriter(log_dir = 'logs')
-
 
 pre_loss = -1
 step = 0
 factor_n = 10
 begin_time = time.time()
-for epoch in range(2):
+for epoch in range(100):
     model.train()
     for i, (img, label) in enumerate(cifar10_train_DL):
         img, label, model = img.to(device), label.to(device), model.to(device)
@@ -149,6 +100,18 @@ for epoch in range(2):
 
         logit = model(img)
         loss = nn.CrossEntropyLoss()(logit, label)
+        # loss = nn.L1Loss()(logit, label)
+        # loss = nn.NLLLoss()(logit, label)
+        # loss = nn.KLDivLoss()(logit, label)
+        # loss = nn.MSELoss()(logit, label)
+        # loss = nn.BCELoss()(logit, label)
+        # loss = nn.HingeEmbeddingLoss()(logit, label)
+        # loss = nn.CosineEmbeddingLoss()(logit, label)
+        # loss = nn.SoftMarginLoss()(logit, label)
+        # loss = nn.MultiMarginLoss()(logit, label)
+        # loss = nn.MultiLabelMarginLoss()(logit, label)
+        # loss = nn.MultiLabelSoftMarginLoss()(logit, label)
+        # loss = nn.SoftMarginLoss()(logit, label)
         loss.backward()
         optim.step()
 
@@ -158,18 +121,19 @@ for epoch in range(2):
         #             p['lr'] *= 0.5
         #             # print(p['lr'])
         # pre_loss = loss.item()
+        n = torch.sum(torch.argmax(logit, 1)==label)
+        train_acc = n.item()/len(label)
         writer.add_scalar('loss', round(loss.item(), factor_n), global_step=step)
+        writer.add_scalar('train_acc', round(train_acc, factor_n), global_step=step)
         step += 1
-        print(f"epoch:{epoch} iter:{i} lr:{list(optim.param_groups)[0]['lr']} loss:{round(loss.item(), factor_n)}")
-        #
-        # if i == 10:
-        #     break
+        print(f"epoch:{epoch} iter:{i} step:{step} lr:{list(optim.param_groups)[0]['lr']} loss:{round(loss.item(), factor_n)} train_acc:{round(train_acc, factor_n)}")
     step_lr.step()
 
     model.eval()
     loss = 0
     n = 0
     acc = 0
+
     with torch.no_grad():
         for i, (img, label) in enumerate(cifar10_test_DL):
             img, label, model = img.to(device), label.to(device), model.to(device)
@@ -180,7 +144,7 @@ for epoch in range(2):
             n += len(label)
             if n == 1000:
                 break
-    print(f"test loss:{round(loss.item()/n, factor_n)} acc:{acc/n}")
+    print(f"test loss:{round(loss.item()/n, factor_n)} acc:{acc.item()/n}")
 end_time = time.time()
 print(f'{end_time-begin_time} s')
 
